@@ -14,16 +14,22 @@ export default function Header({ expertiseLevel, onExpertiseChange }) {
         </span>
       </div>
 
-      {/* Expertise Selector */}
+      <div className="flex items-center gap-2 rounded-xl border border-stone-600 bg-stone-800 px-3 py-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-300">
+          Version
+        </span>
         <select
-        value={expertiseLevel}
-        onChange={(e) => onExpertiseChange(e.target.value)}
-        className="rounded border border-stone-600 bg-stone-800 px-2 py-1 text-xs text-stone-100 outline-none focus:border-amber-300"
-      >
-        <option value="beginner">Beginner</option>
-        <option value="intermediate">Intermediate</option>
-        <option value="advanced">Advanced</option>
-      </select>
+          value={expertiseLevel}
+          onChange={(e) => onExpertiseChange(e.target.value)}
+          style={{ WebkitTextFillColor: "#f5f5f4" }}
+          className="min-w-[7.5rem] appearance-none bg-transparent pr-5 text-xs font-medium text-stone-100 outline-none"
+        >
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+        <span className="pointer-events-none text-xs text-stone-300">▼</span>
+      </div>
     </div>
   );
 }
