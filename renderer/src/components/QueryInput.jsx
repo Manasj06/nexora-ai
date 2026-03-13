@@ -22,7 +22,7 @@ export default function QueryInput({
   };
 
   return (
-    <div className="border-t border-gray-700 p-3 bg-gray-800 bg-opacity-60">
+    <div className="border-t border-primary-700 p-3 bg-primary-800 bg-opacity-60">
       {/* Error Fix Button — shows if clipboard has error content */}
       {hasClipboard && (
         <button
@@ -44,7 +44,7 @@ export default function QueryInput({
           onKeyDown={handleKeyDown}
           placeholder="Ask anything about this app... (Enter to send)"
           disabled={isLoading}
-          className="flex-1 bg-gray-700 text-white text-sm rounded-lg px-3 py-2 outline-none resize-none border border-gray-600 focus:border-blue-500 placeholder-gray-500 disabled:opacity-50 transition-colors"
+          className="flex-1 bg-primary-700 text-white text-sm rounded-lg px-3 py-2 outline-none resize-none border border-primary-600 focus:border-primary-500 placeholder-primary-500 disabled:opacity-50 transition-colors"
         />
         <button
           onClick={onSubmit}

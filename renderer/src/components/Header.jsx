@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Header({ expertiseLevel, onExpertiseChange }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gray-800 bg-opacity-80">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-primary-700 bg-primary-800 bg-opacity-80">
       {/* Logo + Name */}
       <div className="flex items-center gap-2">
         <span className="text-blue-400 text-lg">⬡</span>
@@ -18,7 +18,7 @@ export default function Header({ expertiseLevel, onExpertiseChange }) {
       <select
         value={expertiseLevel}
         onChange={(e) => onExpertiseChange(e.target.value)}
-        className="text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded px-2 py-1 outline-none focus:border-blue-500"
+        className="text-xs bg-primary-700 text-primary-300 border border-primary-600 rounded px-2 py-1 outline-none focus:border-primary-500"
       >
         <option value="beginner">Beginner</option>
         <option value="intermediate">Intermediate</option>

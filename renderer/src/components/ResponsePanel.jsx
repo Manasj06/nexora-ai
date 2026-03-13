@@ -6,18 +6,18 @@ export default function ResponsePanel({ response }) {
   const lines = response.answer.split("\n");
 
   return (
-    <div className="bg-gray-800 bg-opacity-60 rounded-xl border border-gray-700 p-4 mb-3">
+    <div className="bg-primary-800 bg-opacity-60 rounded-xl border border-primary-700 p-4 mb-3">
       {/* Meta */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-blue-400 font-medium">Nexora AI</span>
-        <div className="flex items-center gap-2 text-xs text-gray-600">
+        <div className="flex items-center gap-2 text-xs text-primary-600">
           {response.model && <span>{response.model}</span>}
           {response.tokens_used && <span>· {response.tokens_used} tokens</span>}
         </div>
       </div>
 
       {/* Response Content */}
-      <div className="text-sm text-gray-200 space-y-2 leading-relaxed">
+      <div className="text-sm text-primary-200 space-y-2 leading-relaxed">
         {lines.map((line, i) => {
           // Numbered steps get special styling
           const isStep = /^\d+\./.test(line.trim());
