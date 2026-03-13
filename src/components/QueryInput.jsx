@@ -7,6 +7,7 @@ export default function QueryInput({
   onFixError,
   isLoading,
   hasClipboard,
+  leftOffset = 0,
 }) {
   const textareaRef = useRef(null);
 
@@ -25,11 +26,11 @@ export default function QueryInput({
     <div
       style={{
         position: "fixed",
-        left: "50%",
+        left: `${24 + leftOffset}px`,
+        right: "24px",
         bottom: "24px",
-        transform: "translateX(-50%)",
-        width: "min(calc(100vw - 3rem), 80rem)",
         zIndex: 30,
+        transition: "left 300ms ease, right 300ms ease",
       }}
       className="rounded-[28px] border border-white border-opacity-30 bg-white bg-opacity-10 p-3 backdrop-blur-md"
     >
