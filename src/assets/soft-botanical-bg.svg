@@ -1,0 +1,47 @@
+<svg width="1440" height="2560" viewBox="0 0 1440 2560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="blur-soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="28" />
+    </filter>
+    <filter id="blur-wide" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="42" />
+    </filter>
+    <linearGradient id="wall" x1="0" y1="0" x2="1440" y2="2560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2C5AA" />
+      <stop offset="1" stop-color="#E8CCB3" />
+    </linearGradient>
+    <linearGradient id="shadow-bar" x1="0" y1="0" x2="220" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BB9475" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#BB9475" stop-opacity="0.45" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="2560" fill="url(#wall)" />
+  <rect x="0" y="0" width="220" height="2560" fill="url(#shadow-bar)" />
+
+  <g opacity="0.34" filter="url(#blur-soft)" fill="#9A7156">
+    <ellipse cx="1060" cy="250" rx="260" ry="90" transform="rotate(-13 1060 250)" />
+    <ellipse cx="940" cy="350" rx="220" ry="85" transform="rotate(16 940 350)" />
+    <ellipse cx="1230" cy="410" rx="190" ry="70" transform="rotate(-28 1230 410)" />
+    <path d="M1030 310C1110 470 1160 610 1200 810" stroke="#9A7156" stroke-width="22" stroke-linecap="round" />
+  </g>
+
+  <g opacity="0.3" filter="url(#blur-wide)" fill="#A17658">
+    <ellipse cx="190" cy="980" rx="160" ry="120" />
+    <ellipse cx="400" cy="1090" rx="120" ry="170" transform="rotate(6 400 1090)" />
+    <ellipse cx="680" cy="1190" rx="110" ry="220" transform="rotate(18 680 1190)" />
+    <ellipse cx="980" cy="1390" rx="110" ry="180" transform="rotate(22 980 1390)" />
+    <ellipse cx="1250" cy="1600" rx="90" ry="160" transform="rotate(18 1250 1600)" />
+    <path d="M120 1030C320 1140 500 1290 730 1510C910 1680 1110 1880 1300 2090" stroke="#A17658" stroke-width="18" stroke-linecap="round" />
+    <path d="M80 1180H690" stroke="#A17658" stroke-width="10" stroke-linecap="round" />
+    <path d="M140 1305H840" stroke="#A17658" stroke-width="10" stroke-linecap="round" />
+    <path d="M60 1450H970" stroke="#A17658" stroke-width="10" stroke-linecap="round" />
+    <path d="M130 1600H1090" stroke="#A17658" stroke-width="10" stroke-linecap="round" />
+  </g>
+
+  <g opacity="0.2" filter="url(#blur-wide)" fill="#9C7255">
+    <ellipse cx="780" cy="1910" rx="260" ry="80" transform="rotate(11 780 1910)" />
+    <ellipse cx="1190" cy="2140" rx="240" ry="90" transform="rotate(-9 1190 2140)" />
+    <path d="M1040 1740C1120 1880 1200 2020 1260 2200" stroke="#9C7255" stroke-width="20" stroke-linecap="round" />
+  </g>
+</svg>

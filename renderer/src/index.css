@@ -8,10 +8,28 @@
   padding: 0;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
 body {
-  background: transparent;
+  background-color: #e1c3a9;
+  background-image:
+    linear-gradient(rgba(233, 214, 196, 0.14), rgba(191, 152, 118, 0.1)),
+    url("./assets/soft-botanical-bg.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
+  color: #f7efe8;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 /* Custom scrollbar */

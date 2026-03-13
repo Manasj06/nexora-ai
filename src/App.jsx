@@ -79,40 +79,38 @@ export default function App() {
   }, [context, backendUrl, expertiseLevel]);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 bg-opacity-95 text-white rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
-      {/* Header */}
-      <Header
-        expertiseLevel={expertiseLevel}
-        onExpertiseChange={setExpertiseLevel}
-      />
+    <div className="fixed inset-0 flex flex-col p-4 text-white md:p-6">
+      <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
+        <Header
+          expertiseLevel={expertiseLevel}
+          onExpertiseChange={setExpertiseLevel}
+        />
 
-      {/* Context Badge */}
-      <ContextBadge context={context} isCapturing={isCapturing} />
+        <ContextBadge context={context} isCapturing={isCapturing} />
 
-      {/* Response Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        {response && <ResponsePanel response={response} />}
-        {error && (
-          <div className="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-3 text-red-300 text-sm">
-            ⚠️ {error}
-          </div>
-        )}
-        {!response && !error && !isLoading && (
-          <div className="text-gray-500 text-sm text-center mt-8">
-            <p className="text-2xl mb-2">🤖</p>
-            <p>Ask me anything about your current app.</p>
-            <p className="text-xs mt-1">I see your active context.</p>
-          </div>
-        )}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-blue-400 text-sm mt-4">
-            <span className="animate-spin">⟳</span>
-            <span>Thinking...</span>
-          </div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-56 pt-6 md:px-3 md:pb-64 md:pt-8">
+          {response && <ResponsePanel response={response} />}
+          {error && (
+            <div className="rounded-2xl border border-red-300 border-opacity-50 bg-red-950 bg-opacity-20 p-3 text-sm text-red-50 backdrop-blur-sm">
+              ⚠️ {error}
+            </div>
+          )}
+          {!response && !error && !isLoading && (
+            <div className="mt-12 text-center text-sm text-stone-900">
+              <p className="mb-2 text-2xl">🤖</p>
+              <p className="font-medium text-stone-900">Ask me anything about your current app.</p>
+              <p className="mt-1 text-xs text-stone-700">I see your active context.</p>
+            </div>
+          )}
+          {isLoading && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-stone-900">
+              <span className="animate-spin">⟳</span>
+              <span>Thinking...</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Input Area */}
       <QueryInput
         query={query}
         onChange={setQuery}

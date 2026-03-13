@@ -14,6 +14,7 @@ const {
   nativeImage,
 } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
 
@@ -29,12 +30,34 @@ let overlayWindow = null;
 let tray = null;
 let backendProcess = null;
 
+function resolvePythonBin() {
+  const repoVenvPython =
+    process.platform === "win32"
+      ? path.join(__dirname, "../backend/venv/Scripts/python.exe")
+      : path.join(__dirname, "../backend/venv/bin/python");
+
+  if (fs.existsSync(repoVenvPython)) {
+    return repoVenvPython;
+  }
+
+  return (
+    process.env.NEXORA_PYTHON_BIN ||
+    process.env.PYTHON_BIN ||
+    (process.platform === "win32" ? "python" : "python3")
+  );
+}
+
 // ─── Backend Launcher ────────────────────────────────────────────────────────
 function startBackend() {
   const backendPath = path.join(__dirname, "../backend/main.py");
-  backendProcess = spawn("python", [backendPath], {
+  const pythonBin = resolvePythonBin();
+  backendProcess = spawn(pythonBin, [backendPath], {
     env: { ...process.env },
     stdio: "pipe",
+  });
+
+  backendProcess.on("error", (error) => {
+    console.error(`[Backend] failed to start with '${pythonBin}':`, error);
   });
 
   backendProcess.stdout.on("data", (data) => {

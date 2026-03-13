@@ -6,20 +6,17 @@ export default function ResponsePanel({ response }) {
   const lines = response.answer.split("\n");
 
   return (
-    <div className="bg-gray-800 bg-opacity-60 rounded-xl border border-gray-700 p-4 mb-3">
-      {/* Meta */}
+    <div className="mb-4 rounded-[28px] border border-white border-opacity-30 bg-white bg-opacity-10 p-4 text-stone-900 shadow-lg backdrop-blur-md">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-blue-400 font-medium">Nexora AI</span>
-        <div className="flex items-center gap-2 text-xs text-gray-600">
+        <span className="text-xs font-medium tracking-[0.16em] text-amber-900">Nexora AI</span>
+        <div className="flex items-center gap-2 text-xs text-stone-700">
           {response.model && <span>{response.model}</span>}
           {response.tokens_used && <span>· {response.tokens_used} tokens</span>}
         </div>
       </div>
 
-      {/* Response Content */}
-      <div className="text-sm text-gray-200 space-y-2 leading-relaxed">
+      <div className="space-y-2 text-sm leading-relaxed text-stone-900">
         {lines.map((line, i) => {
-          // Numbered steps get special styling
           const isStep = /^\d+\./.test(line.trim());
           const isTip = line.trim().toLowerCase().startsWith("tip:");
           const isEmpty = line.trim() === "";
@@ -30,7 +27,7 @@ export default function ResponsePanel({ response }) {
             return (
               <div
                 key={i}
-                className="bg-blue-900 bg-opacity-30 border border-blue-700 border-opacity-50 rounded-lg px-3 py-2 text-blue-300 text-xs mt-3"
+                className="mt-3 rounded-xl border border-amber-900 border-opacity-20 bg-amber-100 bg-opacity-40 px-3 py-2 text-xs text-amber-950"
               >
                 💡 {line.replace(/^tip:/i, "").trim()}
               </div>
@@ -40,7 +37,7 @@ export default function ResponsePanel({ response }) {
           if (isStep) {
             return (
               <div key={i} className="flex gap-2">
-                <span className="text-blue-400 font-bold text-xs mt-0.5 shrink-0">
+                <span className="mt-0.5 shrink-0 text-xs font-bold text-amber-900">
                   {line.match(/^\d+/)[0]}.
                 </span>
                 <span>{line.replace(/^\d+\./, "").trim()}</span>
@@ -48,12 +45,11 @@ export default function ResponsePanel({ response }) {
             );
           }
 
-          // Code block detection (backtick lines)
           if (line.trim().startsWith("```") || line.trim().startsWith("`")) {
             return (
               <code
                 key={i}
-                className="block bg-gray-900 text-green-400 text-xs px-3 py-1 rounded font-mono"
+                className="block rounded bg-stone-950 bg-opacity-10 px-3 py-1 font-mono text-xs text-emerald-900"
               >
                 {line.replace(/`/g, "")}
               </code>
@@ -64,10 +60,9 @@ export default function ResponsePanel({ response }) {
         })}
       </div>
 
-      {/* Copy Button */}
       <button
         onClick={() => navigator.clipboard.writeText(response.answer)}
-        className="mt-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        className="mt-3 text-xs text-stone-700 transition-colors hover:text-stone-950"
       >
         Copy response
       </button>

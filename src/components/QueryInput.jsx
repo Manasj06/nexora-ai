@@ -22,20 +22,28 @@ export default function QueryInput({
   };
 
   return (
-    <div className="border-t border-gray-700 p-3 bg-gray-800 bg-opacity-60">
-      {/* Error Fix Button — shows if clipboard has error content */}
+    <div
+      style={{
+        position: "fixed",
+        left: "50%",
+        bottom: "24px",
+        transform: "translateX(-50%)",
+        width: "min(calc(100vw - 3rem), 80rem)",
+        zIndex: 30,
+      }}
+      className="rounded-[28px] border border-white border-opacity-30 bg-white bg-opacity-10 p-3 backdrop-blur-md"
+    >
       {hasClipboard && (
         <button
           onClick={onFixError}
           disabled={isLoading}
-          className="w-full mb-2 text-xs bg-red-900 bg-opacity-40 hover:bg-opacity-60 border border-red-700 text-red-300 rounded-lg py-1.5 px-3 transition-all disabled:opacity-50"
+          className="mb-2 w-full rounded-xl border border-red-300 border-opacity-40 bg-red-100 bg-opacity-30 px-3 py-1.5 text-xs text-red-900 transition-all hover:bg-opacity-40 disabled:opacity-50"
         >
           ⚡ Fix error from clipboard
         </button>
       )}
 
-      {/* Text Input */}
-      <div className="flex gap-2 items-end">
+      <div className="flex items-end gap-2">
         <textarea
           ref={textareaRef}
           rows={2}
@@ -44,12 +52,13 @@ export default function QueryInput({
           onKeyDown={handleKeyDown}
           placeholder="Ask anything about this app... (Enter to send)"
           disabled={isLoading}
-          className="flex-1 bg-gray-700 text-white text-sm rounded-lg px-3 py-2 outline-none resize-none border border-gray-600 focus:border-blue-500 placeholder-gray-500 disabled:opacity-50 transition-colors"
+          style={{ color: "#1c1917", caretColor: "#1c1917" }}
+          className="flex-1 resize-none rounded-2xl border border-amber-900 border-opacity-40 bg-white bg-opacity-85 px-4 py-3 text-sm font-medium text-stone-900 outline-none transition-colors placeholder-stone-500 focus:border-amber-800 disabled:opacity-50"
         />
         <button
           onClick={onSubmit}
           disabled={isLoading || !query.trim()}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg p-2.5 transition-colors"
+          className="rounded-2xl bg-amber-700 px-4 py-3 text-white transition-colors hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isLoading ? (
             <span className="animate-spin text-sm">⟳</span>
@@ -58,7 +67,7 @@ export default function QueryInput({
           )}
         </button>
       </div>
-      <p className="text-xs text-gray-600 mt-1">Shift+Enter for new line</p>
+      <p className="mt-2 text-xs text-stone-800">Shift+Enter for new line</p>
     </div>
   );
 }
