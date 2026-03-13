@@ -1,0 +1,56 @@
+{
+  "name": "nexora-ai",
+  "version": "1.0.0",
+  "description": "Cross-platform AI overlay assistant for real-time application help",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "concurrently \"npm run react\" \"npm run electron\"",
+    "react": "react-scripts start",
+    "electron": "wait-on http://localhost:3000 && electron .",
+    "build": "react-scripts build && electron-builder",
+    "dev": "npm start"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "electron-store": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.0.0",
+    "wait-on": "^7.2.0",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  },
+  "build": {
+    "appId": "com.nexora.ai",
+    "productName": "Nexora AI",
+    "files": [
+      "build/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  },
+  "homepage": "./",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
