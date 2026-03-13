@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     # Server
     BACKEND_HOST: str = "127.0.0.1"
     BACKEND_PORT: int = 8000
+    AUTH_DB_PATH: str = "backend/data/nexora_auth.db"
+    AUTH_SESSION_DAYS: int = 14
 
     # Feature Flags
     ENABLE_CLIPBOARD_MONITOR: bool = True

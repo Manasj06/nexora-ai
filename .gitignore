@@ -40,3 +40,6 @@ assets/screenshots/
 # Temp
 *.tmp
 *.temp
+
+# Local app data
+backend/data/

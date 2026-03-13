@@ -41,3 +41,43 @@ class ErrorFixRequest(BaseModel):
     app_name: str
     context: Optional[AppContext] = None
     expertise_level: Literal["beginner", "intermediate", "advanced"] = "intermediate"
+
+
+# ─── Authentication ───────────────────────────────────────────────────────────
+class AuthUser(BaseModel):
+    id: int
+    email: str
+    display_name: str
+    created_at: str
+    last_login_at: Optional[str] = None
+    history_salt: str
+
+
+class SignUpRequest(BaseModel):
+    display_name: str
+    email: str
+    password: str
+
+
+class SignInRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    token: str
+    expires_at: str
+    user: AuthUser
+
+
+# ─── Encrypted History ────────────────────────────────────────────────────────
+class HistoryEntryCreate(BaseModel):
+    encrypted_payload: str
+    iv: str
+
+
+class HistoryEntryResponse(BaseModel):
+    id: int
+    encrypted_payload: str
+    iv: str
+    created_at: str

@@ -1,16 +1,24 @@
 import React, { useState, useCallback, useEffect } from "react";
+import AuthScreen from "./components/AuthScreen";
 import Header from "./components/Header";
 import QueryInput from "./components/QueryInput";
 import ResponsePanel from "./components/ResponsePanel";
 import ContextBadge from "./components/ContextBadge";
 import ConversationHistory from "./components/ConversationHistory";
+import {
+  decryptHistoryEntry,
+  encryptHistoryEntry,
+  importHistoryKey,
+} from "./lib/secureHistory";
 import { useBackend } from "./hooks/useBackend";
 import { useContext } from "./hooks/useContext";
 
-const HISTORY_STORAGE_KEY = "nexora-conversation-history";
 const HISTORY_LIMIT = 25;
 const HISTORY_DRAWER_WIDTH = 296;
 const HISTORY_CONTENT_GAP = 28;
+const AUTH_SESSION_STORAGE_KEY = "nexora-auth-session";
+const AUTH_HISTORY_KEY_STORAGE_KEY = "nexora-history-key";
+const LAST_ACCOUNT_STORAGE_KEY = "nexora-last-account-email";
 
 function createHistoryEntry({
   prompt,
@@ -40,7 +48,12 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [expertiseLevel, setExpertiseLevel] = useState("intermediate");
   const { backendUrl } = useBackend();
-  const { context, refreshContext, isCapturing } = useContext(backendUrl);
+  const [authUser, setAuthUser] = useState(null);
+  const [authToken, setAuthToken] = useState(null);
+  const [historyKey, setHistoryKey] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [lastAccountEmail, setLastAccountEmail] = useState("");
+  const { context, refreshContext, isCapturing } = useContext(backendUrl, authToken);
   const [response, setResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -50,33 +63,238 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const storedHistory = window.localStorage.getItem(HISTORY_STORAGE_KEY);
-      const parsedHistory = storedHistory ? JSON.parse(storedHistory) : [];
-
-      if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-        setHistory(parsedHistory);
-        setActiveEntryId(parsedHistory[0].id);
-      }
+      setLastAccountEmail(
+        window.localStorage.getItem(LAST_ACCOUNT_STORAGE_KEY) || "",
+      );
     } catch {
-      setHistory([]);
+      setLastAccountEmail("");
     }
   }, []);
 
+  const clearPersistedSession = useCallback(() => {
+    window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_HISTORY_KEY_STORAGE_KEY);
+    setAuthUser(null);
+    setAuthToken(null);
+    setHistoryKey(null);
+    setHistory([]);
+    setActiveEntryId(null);
+    setResponse(null);
+    setError(null);
+    setQuery("");
+    setIsHistoryOpen(false);
+  }, []);
+
   useEffect(() => {
-    try {
-      window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch {
-      // Ignore local storage write errors and keep the in-memory history.
-    }
-  }, [history]);
+    if (!backendUrl) return;
+
+    let isCancelled = false;
+
+    const restoreSession = async () => {
+      const storedSession = window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+      const storedKey = window.sessionStorage.getItem(AUTH_HISTORY_KEY_STORAGE_KEY);
+
+      if (!storedSession || !storedKey) {
+        setIsAuthReady(true);
+        return;
+      }
+
+      try {
+        const session = JSON.parse(storedSession);
+        const keyPayload = JSON.parse(storedKey);
+
+        const sessionResponse = await fetch(`${backendUrl}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${session.token}`,
+          },
+        });
+
+        if (!sessionResponse.ok) {
+          throw new Error("Session expired");
+        }
+
+        const user = await sessionResponse.json();
+        const importedKey = await importHistoryKey(keyPayload);
+
+        if (!isCancelled) {
+          setAuthUser(user);
+          setAuthToken(session.token);
+          setHistoryKey(importedKey);
+          setLastAccountEmail(user.email);
+        }
+      } catch {
+        if (!isCancelled) {
+          clearPersistedSession();
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsAuthReady(true);
+        }
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [backendUrl, clearPersistedSession]);
 
   const pushHistoryEntry = useCallback((entry) => {
     setHistory((previousHistory) => [entry, ...previousHistory].slice(0, HISTORY_LIMIT));
     setActiveEntryId(entry.id);
   }, []);
 
+  const buildAuthHeaders = useCallback(
+    (includeJson = false) => {
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+
+      if (includeJson) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      return headers;
+    },
+    [authToken],
+  );
+
+  const persistHistoryEntry = useCallback(
+    async (entry) => {
+      if (!backendUrl || !authToken || !historyKey) {
+        throw new Error("Sign in again to save encrypted history.");
+      }
+
+      const encryptedEntry = await encryptHistoryEntry(historyKey, entry);
+      const responseFromServer = await fetch(`${backendUrl}/history/`, {
+        method: "POST",
+        headers: buildAuthHeaders(true),
+        body: JSON.stringify(encryptedEntry),
+      });
+
+      const responseBody = await responseFromServer.json();
+
+      if (responseFromServer.status === 401) {
+        clearPersistedSession();
+        throw new Error("Your session expired. Please sign in again.");
+      }
+
+      if (!responseFromServer.ok) {
+        throw new Error(responseBody.detail || "Failed to save encrypted history.");
+      }
+
+      return {
+        ...entry,
+        id: String(responseBody.id),
+        createdAt: responseBody.created_at || entry.createdAt,
+      };
+    },
+    [backendUrl, authToken, historyKey, buildAuthHeaders, clearPersistedSession],
+  );
+
+  const loadEncryptedHistory = useCallback(
+    async (token, key) => {
+      if (!backendUrl || !token || !key) {
+        setHistory([]);
+        setActiveEntryId(null);
+        return;
+      }
+
+      const historyResponse = await fetch(`${backendUrl}/history/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (historyResponse.status === 401) {
+        clearPersistedSession();
+        return;
+      }
+
+      const historyPayload = await historyResponse.json();
+
+      if (!historyResponse.ok) {
+        throw new Error(historyPayload.detail || "Failed to load encrypted history.");
+      }
+
+      const decryptedHistory = (
+        await Promise.all(
+          historyPayload.map(async (entry) => {
+            const decryptedEntry = await decryptHistoryEntry(key, entry);
+
+            if (!decryptedEntry) {
+              return null;
+            }
+
+            return {
+              ...decryptedEntry,
+              id: String(entry.id),
+              createdAt: decryptedEntry.createdAt || entry.created_at,
+            };
+          }),
+        )
+      ).filter(Boolean);
+
+      setHistory(decryptedHistory);
+      setActiveEntryId(decryptedHistory[0]?.id || null);
+    },
+    [backendUrl, clearPersistedSession],
+  );
+
+  useEffect(() => {
+    if (!authToken || !historyKey || !backendUrl) {
+      setHistory([]);
+      setActiveEntryId(null);
+      return;
+    }
+
+    loadEncryptedHistory(authToken, historyKey).catch((historyError) => {
+      setError(historyError.message || "Failed to load encrypted history.");
+    });
+  }, [authToken, historyKey, backendUrl, loadEncryptedHistory]);
+
+  const handleAuthenticated = useCallback(({ auth, historyKey: nextHistoryKey, exportedHistoryKey }) => {
+    window.sessionStorage.setItem(
+      AUTH_SESSION_STORAGE_KEY,
+      JSON.stringify({
+        token: auth.token,
+        expires_at: auth.expires_at,
+      }),
+    );
+    window.sessionStorage.setItem(
+      AUTH_HISTORY_KEY_STORAGE_KEY,
+      JSON.stringify(exportedHistoryKey),
+    );
+    window.localStorage.setItem(LAST_ACCOUNT_STORAGE_KEY, auth.user.email);
+
+    setAuthUser(auth.user);
+    setAuthToken(auth.token);
+    setHistoryKey(nextHistoryKey);
+    setLastAccountEmail(auth.user.email);
+    setResponse(null);
+    setError(null);
+    setHistory([]);
+    setActiveEntryId(null);
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    if (backendUrl && authToken) {
+      try {
+        await fetch(`${backendUrl}/auth/signout`, {
+          method: "POST",
+          headers: buildAuthHeaders(),
+        });
+      } catch {
+        // Ignore signout network issues and clear the local session anyway.
+      }
+    }
+
+    clearPersistedSession();
+  }, [backendUrl, authToken, buildAuthHeaders, clearPersistedSession]);
+
   const handleSubmit = useCallback(async () => {
-    if (!query.trim() || !backendUrl) return;
+    if (!query.trim() || !backendUrl || !authToken) return;
 
     setIsLoading(true);
     setError(null);
@@ -89,7 +307,7 @@ export default function App() {
 
       const res = await fetch(`${backendUrl}/assist/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildAuthHeaders(true),
         body: JSON.stringify({
           query,
           context: freshContext,
@@ -103,7 +321,7 @@ export default function App() {
       }
 
       const data = await res.json();
-      const entry = createHistoryEntry({
+      const draftEntry = createHistoryEntry({
         prompt: query,
         response: data,
         expertiseLevel,
@@ -111,27 +329,44 @@ export default function App() {
         source: "ask",
       });
 
-      pushHistoryEntry(entry);
       setResponse(data);
       setQuery("");
-    } catch (err) {
-      const entry = createHistoryEntry({
-        prompt: query,
-        error: err.message,
-        expertiseLevel,
-        contextLabel: context?.app_name,
-        source: "ask",
-      });
 
-      pushHistoryEntry(entry);
+      const savedEntry = await persistHistoryEntry(draftEntry);
+      pushHistoryEntry(savedEntry);
+    } catch (err) {
       setError(err.message);
+
+      try {
+        const draftEntry = createHistoryEntry({
+          prompt: query,
+          error: err.message,
+          expertiseLevel,
+          contextLabel: context?.app_name,
+          source: "ask",
+        });
+        const savedEntry = await persistHistoryEntry(draftEntry);
+        pushHistoryEntry(savedEntry);
+      } catch {
+        // If saving the failure entry also fails, keep the current screen state.
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [query, backendUrl, expertiseLevel, refreshContext, context, pushHistoryEntry]);
+  }, [
+    query,
+    backendUrl,
+    authToken,
+    expertiseLevel,
+    refreshContext,
+    context,
+    buildAuthHeaders,
+    persistHistoryEntry,
+    pushHistoryEntry,
+  ]);
 
   const handleErrorFix = useCallback(async () => {
-    if (!context?.clipboard_content || !backendUrl) return;
+    if (!context?.clipboard_content || !backendUrl || !authToken) return;
 
     setIsLoading(true);
     setError(null);
@@ -141,7 +376,7 @@ export default function App() {
     try {
       const res = await fetch(`${backendUrl}/assist/fix-error`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildAuthHeaders(true),
         body: JSON.stringify({
           error_text: context.clipboard_content,
           app_name: context.app_name,
@@ -150,7 +385,11 @@ export default function App() {
       });
 
       const data = await res.json();
-      const entry = createHistoryEntry({
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to fix clipboard error.");
+      }
+
+      const draftEntry = createHistoryEntry({
         prompt: "Fix clipboard error",
         response: data,
         expertiseLevel,
@@ -158,23 +397,38 @@ export default function App() {
         source: "clipboard",
       });
 
-      pushHistoryEntry(entry);
       setResponse(data);
-    } catch (err) {
-      const entry = createHistoryEntry({
-        prompt: "Fix clipboard error",
-        error: err.message,
-        expertiseLevel,
-        contextLabel: context?.app_name,
-        source: "clipboard",
-      });
 
-      pushHistoryEntry(entry);
+      const savedEntry = await persistHistoryEntry(draftEntry);
+      pushHistoryEntry(savedEntry);
+    } catch (err) {
       setError(err.message);
+
+      try {
+        const draftEntry = createHistoryEntry({
+          prompt: "Fix clipboard error",
+          error: err.message,
+          expertiseLevel,
+          contextLabel: context?.app_name,
+          source: "clipboard",
+        });
+        const savedEntry = await persistHistoryEntry(draftEntry);
+        pushHistoryEntry(savedEntry);
+      } catch {
+        // Ignore secondary history-save failures here.
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [context, backendUrl, expertiseLevel, pushHistoryEntry]);
+  }, [
+    context,
+    backendUrl,
+    authToken,
+    expertiseLevel,
+    buildAuthHeaders,
+    persistHistoryEntry,
+    pushHistoryEntry,
+  ]);
 
   const handleSelectHistory = useCallback((entryId) => {
     setActiveEntryId(entryId);
@@ -183,12 +437,59 @@ export default function App() {
     setIsHistoryOpen(false);
   }, []);
 
-  const handleClearHistory = useCallback(() => {
-    setHistory([]);
-    setActiveEntryId(null);
-    setResponse(null);
-    setError(null);
-  }, []);
+  const handleClearHistory = useCallback(async () => {
+    if (!backendUrl || !authToken) return;
+
+    try {
+      const historyResponse = await fetch(`${backendUrl}/history/`, {
+        method: "DELETE",
+        headers: buildAuthHeaders(),
+      });
+
+      const historyPayload = await historyResponse.json();
+
+      if (historyResponse.status === 401) {
+        clearPersistedSession();
+        return;
+      }
+
+      if (!historyResponse.ok) {
+        throw new Error(historyPayload.detail || "Failed to clear encrypted history.");
+      }
+
+      setHistory([]);
+      setActiveEntryId(null);
+      setResponse(null);
+      setError(null);
+    } catch (historyError) {
+      setError(historyError.message || "Failed to clear encrypted history.");
+    }
+  }, [backendUrl, authToken, buildAuthHeaders, clearPersistedSession]);
+
+  if (!backendUrl || !isAuthReady) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center p-6 text-stone-900">
+        <div className="rounded-[32px] border border-white border-opacity-30 bg-white bg-opacity-16 px-8 py-6 shadow-xl backdrop-blur-xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-900">
+            Nexora AI
+          </p>
+          <p className="mt-3 text-base font-medium text-stone-950">
+            Loading your secure workspace...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser || !authToken || !historyKey) {
+    return (
+      <AuthScreen
+        backendUrl={backendUrl}
+        lastAccountEmail={lastAccountEmail}
+        onAuthenticated={handleAuthenticated}
+      />
+    );
+  }
 
   const activeEntry =
     history.find((entry) => entry.id === activeEntryId) || null;
@@ -221,6 +522,8 @@ export default function App() {
         <Header
           expertiseLevel={expertiseLevel}
           onExpertiseChange={setExpertiseLevel}
+          user={authUser}
+          onSignOut={handleSignOut}
         />
 
         <ContextBadge context={context} isCapturing={isCapturing} />

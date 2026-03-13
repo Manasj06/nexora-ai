@@ -3,15 +3,19 @@ import { useState, useCallback, useEffect } from "react";
 /**
  * Fetches and refreshes the active application context from the backend.
  */
-export function useContext(backendUrl) {
+export function useContext(backendUrl, authToken) {
   const [context, setContext] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
 
   const refreshContext = useCallback(async () => {
-    if (!backendUrl) return null;
+    if (!backendUrl || !authToken) return null;
     setIsCapturing(true);
     try {
-      const res = await fetch(`${backendUrl}/context/capture`);
+      const res = await fetch(`${backendUrl}/context/capture`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setContext(data);
@@ -23,16 +27,19 @@ export function useContext(backendUrl) {
       setIsCapturing(false);
     }
     return null;
-  }, [backendUrl]);
+  }, [backendUrl, authToken]);
 
   // Auto-capture context on mount and every 5 seconds
   useEffect(() => {
-    if (!backendUrl) return;
+    if (!backendUrl || !authToken) {
+      setContext(null);
+      return undefined;
+    }
 
     refreshContext();
     const interval = setInterval(refreshContext, 5000);
     return () => clearInterval(interval);
-  }, [backendUrl, refreshContext]);
+  }, [backendUrl, authToken, refreshContext]);
 
   return { context, refreshContext, isCapturing };
 }

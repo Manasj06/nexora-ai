@@ -7,7 +7,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import assist, context, health
+from auth_store import init_auth_store
+from routers import assist, auth, context, health, history
 from config import settings
 
 # ─── App Init ─────────────────────────────────────────────────────────────────
@@ -16,6 +17,7 @@ app = FastAPI(
     description="Context-aware AI assistant backend",
     version="1.0.0",
 )
+init_auth_store()
 
 # ─── CORS (allow Electron renderer) ──────────────────────────────────────────
 app.add_middleware(
@@ -28,6 +30,8 @@ app.add_middleware(
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
 app.include_router(health.router, prefix="/health", tags=["Health"])
+app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(history.router, prefix="/history", tags=["History"])
 app.include_router(context.router, prefix="/context", tags=["Context"])
 app.include_router(assist.router, prefix="/assist", tags=["Assist"])
 

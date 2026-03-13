@@ -3,18 +3,19 @@ Nexora AI — Assist Router
 Core AI assistance endpoints
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from schemas import AssistRequest, AssistResponse, ErrorFixRequest, AppContext
 from ai_engine import ask, ask_stream
 from context import build_context
 from config import settings
+from auth_store import require_authenticated_user
 
 router = APIRouter()
 
 
 @router.post("/ask", response_model=AssistResponse)
-async def ask_assistant(request: AssistRequest):
+async def ask_assistant(request: AssistRequest, _user: dict = Depends(require_authenticated_user)):
     """
     Main endpoint: receives user query + context, returns AI guidance.
     """
@@ -31,7 +32,7 @@ async def ask_assistant(request: AssistRequest):
 
 
 @router.post("/ask/stream")
-async def ask_assistant_stream(request: AssistRequest):
+async def ask_assistant_stream(request: AssistRequest, _user: dict = Depends(require_authenticated_user)):
     """
     Streaming version: returns AI response token by token via SSE.
     """
@@ -54,7 +55,7 @@ async def ask_assistant_stream(request: AssistRequest):
 
 
 @router.post("/fix-error", response_model=AssistResponse)
-async def fix_error(request: ErrorFixRequest):
+async def fix_error(request: ErrorFixRequest, _user: dict = Depends(require_authenticated_user)):
     """
     Dedicated error fix endpoint.
     Accepts raw error text and auto-builds a fix-focused request.
@@ -82,7 +83,11 @@ async def fix_error(request: ErrorFixRequest):
 
 
 @router.post("/quick-ask")
-async def quick_ask(query: str, expertise_level: str = "intermediate"):
+async def quick_ask(
+    query: str,
+    expertise_level: str = "intermediate",
+    _user: dict = Depends(require_authenticated_user),
+):
     """
     Minimal endpoint: auto-captures context and answers a quick question.
     """
