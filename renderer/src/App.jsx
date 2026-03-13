@@ -79,7 +79,7 @@ export default function App() {
   }, [context, backendUrl, expertiseLevel]);
 
   return (
-    <div className="flex flex-col h-screen bg-primary-900 bg-opacity-95 text-white rounded-xl shadow-2xl border border-primary-700 overflow-hidden">
+    <div className="flex flex-col h-screen bg-gray-900 bg-opacity-95 text-white rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
       {/* Header */}
       <Header
         expertiseLevel={expertiseLevel}
@@ -98,7 +98,7 @@ export default function App() {
           </div>
         )}
         {!response && !error && !isLoading && (
-          <div className="text-primary-400 text-sm text-center mt-8">
+          <div className="text-gray-500 text-sm text-center mt-8">
             <p className="text-2xl mb-2">🤖</p>
             <p>Ask me anything about your current app.</p>
             <p className="text-xs mt-1">I see your active context.</p>
