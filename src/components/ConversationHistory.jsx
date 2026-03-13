@@ -29,6 +29,7 @@ export default function ConversationHistory({
       {!isOpen && (
         <button
           onClick={onToggle}
+          aria-label="Open history"
           style={{
             position: "fixed",
             left: 0,
@@ -36,7 +37,7 @@ export default function ConversationHistory({
             transform: "translateY(-50%)",
             zIndex: 40,
           }}
-          className="rounded-r-2xl border border-l-0 border-white border-opacity-30 bg-white bg-opacity-20 px-2 py-4 text-stone-900 shadow-lg backdrop-blur-md transition-all hover:bg-opacity-30"
+          className="rounded-r-2xl border border-l-0 border-white border-opacity-30 bg-white bg-opacity-20 px-3 py-4 text-stone-900 shadow-lg backdrop-blur-md transition-all hover:bg-opacity-30"
         >
           <div className="flex items-center gap-2">
             <div className="flex flex-col gap-1">
@@ -44,12 +45,6 @@ export default function ConversationHistory({
               <span className="block h-0.5 w-4 rounded bg-stone-800" />
               <span className="block h-0.5 w-3 rounded bg-stone-800" />
             </div>
-            <span
-              style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
-              className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-800"
-            >
-              History
-            </span>
             <span className="text-sm font-semibold text-stone-800">{">"}</span>
           </div>
         </button>
@@ -73,6 +68,7 @@ export default function ConversationHistory({
       >
         <button
           onClick={onToggle}
+          aria-label="Close history"
           style={{
             position: "absolute",
             right: -20,
@@ -80,16 +76,10 @@ export default function ConversationHistory({
             transform: "translateY(-50%)",
             zIndex: 10,
           }}
-          className="rounded-r-2xl border border-l-0 border-white border-opacity-30 bg-white bg-opacity-20 px-2 py-4 text-stone-900 shadow-lg backdrop-blur-md transition-all hover:bg-opacity-30"
+          className="rounded-r-2xl border border-l-0 border-white border-opacity-30 bg-white bg-opacity-20 px-3 py-4 text-stone-900 shadow-lg backdrop-blur-md transition-all hover:bg-opacity-30"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center">
             <span className="text-sm font-semibold text-stone-800">{"<"}</span>
-            <span
-              style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
-              className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-800"
-            >
-              History
-            </span>
           </div>
         </button>
 
