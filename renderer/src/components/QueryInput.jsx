@@ -44,7 +44,7 @@ export default function QueryInput({
           onKeyDown={handleKeyDown}
           placeholder="Ask anything about this app... (Enter to send)"
           disabled={isLoading}
-          className="flex-1 bg-primary-700 text-white text-sm rounded-lg px-3 py-2 outline-none resize-none border border-primary-600 focus:border-primary-500 placeholder-primary-500 disabled:opacity-50 transition-colors"
+          className="flex-1 bg-primary-600 text-white text-sm rounded-lg px-3 py-2 outline-none resize-none border border-primary-500 focus:border-primary-400 placeholder-primary-300 disabled:opacity-50 transition-colors"
         />
         <button
           onClick={onSubmit}
