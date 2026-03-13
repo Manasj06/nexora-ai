@@ -148,6 +148,27 @@ def _ask_demo(request: AssistRequest) -> dict:
             answer = response
             break
     
+    if not answer and (
+        "integrated application" in query
+        or "analyze the current issue" in query
+        or "analyze the currently open work" in query
+        or "live app" in query
+    ):
+        context_bits = [
+            f"I can currently see {request.context.app_name} on {request.context.platform}.",
+            f"The active window looks like '{request.context.window_title}'.",
+        ]
+
+        if request.context.clipboard_content:
+            clipped = request.context.clipboard_content[:180]
+            context_bits.append(f"Clipboard hint: {clipped}")
+
+        answer = (
+            "Demo mode: Nexora captured live app context successfully. "
+            + " ".join(context_bits)
+            + " To get a full AI diagnosis from this live context, configure your API credentials in the .env file."
+        )
+
     if not answer:
         answer = f"Demo mode: I received your query '{request.query}'. To get real AI responses, please configure your API credentials (OPENAI_API_KEY or NVIDIA_API_KEY) in the .env file."
     

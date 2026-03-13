@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import AuthScreen from "./components/AuthScreen";
+import AppIntegrationPanel from "./components/AppIntegrationPanel";
 import Header from "./components/Header";
 import QueryInput from "./components/QueryInput";
 import ResponsePanel from "./components/ResponsePanel";
@@ -19,6 +20,11 @@ const HISTORY_CONTENT_GAP = 28;
 const AUTH_SESSION_STORAGE_KEY = "nexora-auth-session";
 const AUTH_HISTORY_KEY_STORAGE_KEY = "nexora-history-key";
 const LAST_ACCOUNT_STORAGE_KEY = "nexora-last-account-email";
+const INTEGRATION_CAPTURE_DELAY = 4;
+
+function getIntegrationStorageKey(userId) {
+  return `nexora-live-integration:${userId}`;
+}
 
 function createHistoryEntry({
   prompt,
@@ -60,6 +66,21 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [activeEntryId, setActiveEntryId] = useState(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
+  const [integrationTarget, setIntegrationTarget] = useState(null);
+  const [pendingIntegrationAction, setPendingIntegrationAction] = useState(null);
+  const [integrationCountdown, setIntegrationCountdown] = useState(0);
+  const captureTimerRef = useRef(null);
+
+  const cancelPendingIntegrationCapture = useCallback(() => {
+    if (captureTimerRef.current) {
+      window.clearTimeout(captureTimerRef.current);
+      captureTimerRef.current = null;
+    }
+
+    setPendingIntegrationAction(null);
+    setIntegrationCountdown(0);
+  }, []);
 
   useEffect(() => {
     try {
@@ -83,7 +104,16 @@ export default function App() {
     setError(null);
     setQuery("");
     setIsHistoryOpen(false);
-  }, []);
+    setIsIntegrationOpen(false);
+    setIntegrationTarget(null);
+    cancelPendingIntegrationCapture();
+  }, [cancelPendingIntegrationCapture]);
+
+  useEffect(() => {
+    return () => {
+      cancelPendingIntegrationCapture();
+    };
+  }, [cancelPendingIntegrationCapture]);
 
   useEffect(() => {
     if (!backendUrl) return;
@@ -254,6 +284,44 @@ export default function App() {
     });
   }, [authToken, historyKey, backendUrl, loadEncryptedHistory]);
 
+  useEffect(() => {
+    if (!authUser) {
+      setIntegrationTarget(null);
+      return;
+    }
+
+    try {
+      const storedTarget = window.localStorage.getItem(
+        getIntegrationStorageKey(authUser.id),
+      );
+
+      if (!storedTarget) {
+        setIntegrationTarget(null);
+        return;
+      }
+
+      setIntegrationTarget(JSON.parse(storedTarget));
+    } catch {
+      setIntegrationTarget(null);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    const storageKey = getIntegrationStorageKey(authUser.id);
+
+    try {
+      if (integrationTarget) {
+        window.localStorage.setItem(storageKey, JSON.stringify(integrationTarget));
+      } else {
+        window.localStorage.removeItem(storageKey);
+      }
+    } catch {
+      // Ignore local storage failures and keep runtime state.
+    }
+  }, [authUser, integrationTarget]);
+
   const handleAuthenticated = useCallback(({ auth, historyKey: nextHistoryKey, exportedHistoryKey }) => {
     window.sessionStorage.setItem(
       AUTH_SESSION_STORAGE_KEY,
@@ -292,6 +360,146 @@ export default function App() {
 
     clearPersistedSession();
   }, [backendUrl, authToken, buildAuthHeaders, clearPersistedSession]);
+
+  const runDelayedContextCapture = useCallback(
+    (actionName) =>
+      new Promise((resolve, reject) => {
+        let remaining = INTEGRATION_CAPTURE_DELAY;
+
+        cancelPendingIntegrationCapture();
+        setPendingIntegrationAction(actionName);
+        setIntegrationCountdown(remaining);
+
+        const tick = async () => {
+          remaining -= 1;
+
+          if (remaining <= 0) {
+            try {
+              const capturedContext = await refreshContext();
+
+              if (!capturedContext || !capturedContext.app_name || capturedContext.app_name === "Unknown") {
+                throw new Error("Nexora could not detect a live app. Try again and switch faster.");
+              }
+
+              cancelPendingIntegrationCapture();
+              resolve(capturedContext);
+            } catch (captureError) {
+              cancelPendingIntegrationCapture();
+              reject(captureError);
+            }
+            return;
+          }
+
+          setIntegrationCountdown(remaining);
+          captureTimerRef.current = window.setTimeout(tick, 1000);
+        };
+
+        captureTimerRef.current = window.setTimeout(tick, 1000);
+      }),
+    [cancelPendingIntegrationCapture, refreshContext],
+  );
+
+  const handleStartIntegration = useCallback(async () => {
+    setError(null);
+
+    try {
+      const capturedContext = await runDelayedContextCapture("integrate");
+      setIntegrationTarget({
+        appName: capturedContext.app_name,
+        windowTitle: capturedContext.window_title,
+        platform: capturedContext.platform,
+        connectedAt: new Date().toISOString(),
+      });
+      setIsIntegrationOpen(false);
+    } catch (integrationError) {
+      setError(
+        integrationError.message || "Failed to connect Nexora to the selected app.",
+      );
+    }
+  }, [runDelayedContextCapture]);
+
+  const handleAnalyzeIntegratedApp = useCallback(async () => {
+    if (!integrationTarget || !backendUrl || !authToken) {
+      setIsIntegrationOpen(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setResponse(null);
+    setActiveEntryId(null);
+
+    try {
+      const capturedContext = await runDelayedContextCapture("analyze");
+
+      if (capturedContext.app_name !== integrationTarget.appName) {
+        throw new Error(
+          `Nexora detected ${capturedContext.app_name} instead of ${integrationTarget.appName}. Keep ${integrationTarget.appName} in front, or reconnect the app from M.`,
+        );
+      }
+
+      const integrationPrompt = [
+        `Analyze the current issue in the integrated application ${integrationTarget.appName}.`,
+        "Look at the live app context, active window, clipboard hints, and current workspace state.",
+        "Figure out the likely code or topic problem without asking me to paste it again.",
+        "If the visible context is too thin, say exactly what missing clue you still need.",
+      ].join(" ");
+
+      const res = await fetch(`${backendUrl}/assist/ask`, {
+        method: "POST",
+        headers: buildAuthHeaders(true),
+        body: JSON.stringify({
+          query: integrationPrompt,
+          context: capturedContext,
+          expertise_level: expertiseLevel,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to analyze the integrated app.");
+      }
+
+      const draftEntry = createHistoryEntry({
+        prompt: `Live app analysis - ${integrationTarget.appName}`,
+        response: data,
+        expertiseLevel,
+        contextLabel: capturedContext.app_name,
+        source: "monitor",
+      });
+
+      setResponse(data);
+      setIsIntegrationOpen(false);
+
+      const savedEntry = await persistHistoryEntry(draftEntry);
+      pushHistoryEntry(savedEntry);
+    } catch (monitorError) {
+      setError(monitorError.message || "Failed to analyze the integrated app.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    integrationTarget,
+    backendUrl,
+    authToken,
+    buildAuthHeaders,
+    expertiseLevel,
+    persistHistoryEntry,
+    pushHistoryEntry,
+    runDelayedContextCapture,
+  ]);
+
+  const handleDisconnectIntegration = useCallback(() => {
+    cancelPendingIntegrationCapture();
+    setIntegrationTarget(null);
+    setIsIntegrationOpen(false);
+  }, [cancelPendingIntegrationCapture]);
+
+  const handleCloseIntegrationPanel = useCallback(() => {
+    cancelPendingIntegrationCapture();
+    setIsIntegrationOpen(false);
+  }, [cancelPendingIntegrationCapture]);
 
   const handleSubmit = useCallback(async () => {
     if (!query.trim() || !backendUrl || !authToken) return;
@@ -526,7 +734,11 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-        <ContextBadge context={context} isCapturing={isCapturing} />
+        <ContextBadge
+          context={context}
+          isCapturing={isCapturing}
+          integrationTarget={integrationTarget}
+        />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-56 pt-6 md:px-3 md:pb-64 md:pt-8">
           {displayedResponse && <ResponsePanel response={displayedResponse} />}
@@ -556,9 +768,24 @@ export default function App() {
         onChange={setQuery}
         onSubmit={handleSubmit}
         onFixError={handleErrorFix}
+        onOpenIntegration={() => setIsIntegrationOpen(true)}
         isLoading={isLoading}
         hasClipboard={!!context?.clipboard_content}
+        integrationTarget={integrationTarget}
         leftOffset={historyOpenOffset}
+      />
+
+      <AppIntegrationPanel
+        isOpen={isIntegrationOpen}
+        onClose={handleCloseIntegrationPanel}
+        onStartIntegration={handleStartIntegration}
+        onAnalyzeIntegratedApp={handleAnalyzeIntegratedApp}
+        onDisconnect={handleDisconnectIntegration}
+        currentContext={context}
+        integrationTarget={integrationTarget}
+        pendingAction={pendingIntegrationAction}
+        countdown={integrationCountdown}
+        isBusy={isLoading || isCapturing}
       />
     </div>
   );

@@ -142,7 +142,13 @@ export default function ConversationHistory({
                   </div>
 
                   <div className="mt-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-stone-600">
-                    <span>{entry.source === "clipboard" ? "Fix" : "Ask"}</span>
+                    <span>
+                      {entry.source === "clipboard"
+                        ? "Fix"
+                        : entry.source === "monitor"
+                          ? "Live"
+                          : "Ask"}
+                    </span>
                     {entry.expertiseLevel && <span>{entry.expertiseLevel}</span>}
                     {entry.contextLabel && <span className="truncate">{entry.contextLabel}</span>}
                   </div>

@@ -5,8 +5,10 @@ export default function QueryInput({
   onChange,
   onSubmit,
   onFixError,
+  onOpenIntegration,
   isLoading,
   hasClipboard,
+  integrationTarget,
   leftOffset = 0,
 }) {
   const textareaRef = useRef(null);
@@ -34,6 +36,33 @@ export default function QueryInput({
       }}
       className="rounded-[28px] border border-white border-opacity-30 bg-white bg-opacity-10 p-3 backdrop-blur-md"
     >
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenIntegration}
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#b78459] text-sm font-semibold text-[#fff8f1] shadow-sm transition hover:bg-[#a6744c]"
+        >
+          M
+        </button>
+        <div className="min-w-0 flex-1 rounded-2xl border border-white/40 bg-white/45 px-3 py-2 text-xs text-stone-800 shadow-sm">
+          {integrationTarget ? (
+            <span>
+              Integrated with{" "}
+              <span className="font-semibold text-stone-950">
+                {integrationTarget.appName}
+              </span>
+              . Press <span className="font-semibold text-stone-950">M</span> to
+              reconnect or analyze the live app without typing the issue.
+            </span>
+          ) : (
+            <span>
+              Press <span className="font-semibold text-stone-950">M</span> to connect
+              Nexora to a live app and inspect it without pasting the issue every time.
+            </span>
+          )}
+        </div>
+      </div>
+
       {hasClipboard && (
         <button
           onClick={onFixError}
